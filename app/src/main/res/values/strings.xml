@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">微信视频总结</string>
+    <string name="accessibility_service_description">该服务用于读取微信视频号内容，帮助您自动总结视频要点。仅读取屏幕文字，不会进行任何自动化操作。</string>
+</resources>
