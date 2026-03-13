@@ -1,11 +1,7 @@
 package com.gasia.wechatsummarizer
 
 import android.accessibilityservice.AccessibilityService
-import android.accessibilityservice.GestureDescription
 import android.content.Intent
-import android.graphics.Path
-import android.graphics.Rect
-import android.os.Bundle
 import android.util.Log
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
@@ -20,13 +16,26 @@ class WeChatVideoService : AccessibilityService() {
 
     companion object {
         private const val TAG = "WeChatVideoService"
-        private const val OPENCLAW_API = "http://192.168.1.100:18789/api/summarize" // 替换为你的OpenClaw地址
+        private const val OPENCLAW_API = "http://192.168.1.100:18789/api/summarize"
+        
+        @Volatile
         private var isRunning = false
-        private var lastVideoTitle = ""
-        private var capturedTexts = mutableListOf<String>()
+        
         private val client = OkHttpClient()
+        
+        fun start() {
+            isRunning = true
+        }
+        
+        fun stop() {
+            isRunning = false
+        }
+        
+        fun isServiceRunning() = isRunning
     }
-
+    
+    private var lastVideoTitle = ""
+    private val capturedTexts = mutableListOf<String>()
     private val scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
 
     override fun onServiceConnected() {
@@ -43,7 +52,6 @@ class WeChatVideoService : AccessibilityService() {
                 val className = event.className?.toString() ?: ""
                 Log.d(TAG, "Window changed: $className")
                 
-                // 检测是否在视频号界面
                 if (className.contains("Finder") || className.contains("VideoPlayer")) {
                     Log.d(TAG, "Detected video player")
                     captureVideoInfo()
@@ -51,7 +59,7 @@ class WeChatVideoService : AccessibilityService() {
             }
             AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED -> {
                 if (isRunning && event.source != null) {
-                    extractTextFromNode(event.source)
+                    event.source?.let { extractTextFromNode(it) }
                 }
             }
         }
@@ -64,7 +72,6 @@ class WeChatVideoService : AccessibilityService() {
     private fun captureVideoInfo() {
         val rootNode = rootInActiveWindow ?: return
         
-        // 尝试获取视频标题
         val titleNode = findNodeByText(rootNode, listOf("标题", "title", "textView"))
         val title = titleNode?.text?.toString() ?: ""
         
@@ -74,7 +81,6 @@ class WeChatVideoService : AccessibilityService() {
             capturedTexts.add("[标题] $title")
         }
         
-        // 获取视频描述/字幕
         extractTextFromNode(rootNode)
     }
 
@@ -87,7 +93,6 @@ class WeChatVideoService : AccessibilityService() {
             }
         }
         
-        // 递归遍历子节点
         for (i in 0 until node.childCount) {
             node.getChild(i)?.let { extractTextFromNode(it) }
         }
@@ -164,17 +169,5 @@ class WeChatVideoService : AccessibilityService() {
                 }
             }
         }
-    }
-
-    companion object {
-        fun start() {
-            isRunning = true
-        }
-        
-        fun stop() {
-            isRunning = false
-        }
-        
-        fun isServiceRunning() = isRunning
     }
 }
