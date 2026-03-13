@@ -1,2 +1,2 @@
-rootProject.name = "WechatSummarizer"
+rootProject.name = 'WechatSummarizer'
 include ':app'
